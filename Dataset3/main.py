@@ -144,22 +144,28 @@ print(f"  Time range: 0 – {df['Time'].max():,.0f} seconds  ({total_hours:.1f} 
 fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True) # This creates a figure with two subplots arranged vertically (2 rows, 1 column). sharex means that both subplots will share the same x-axis
 
 
-axes[0].hist(df["Hour"], bins=48, color="#3498db", edgecolor="black", alpha=0.7)
-axes[0].set_title("All Transactions Over Time", fontsize=14, fontweight="bold")
-axes[0].set_ylabel("Number of Transactions")
+axes[0].hist(df["Hour"], bins=48, color="#3498db", edgecolor="black", alpha=0.7) # Autocompleted COMPLETELY
+axes[0].set_title("All Transactions Over Time", fontsize=14, fontweight="bold") # --
+axes[0].set_ylabel("Number of Transactions") # --
 
-# Fraud transactions by hour
-fraud_hours = df[df["Class"] == 1]["Hour"]
-axes[1].hist(fraud_hours, bins=48, color="#e74c3c", edgecolor="black", alpha=0.7)
+
+fraud_hours = df[df["Class"] == 1]["Hour"] # This creates a new dataframe called fraud_hours that contains only the Hour values for transactions where the Class is 1 (fraudulent)
+axes[1].hist(fraud_hours, bins=48, color="#e74c3c", edgecolor="black", alpha=0.7) # From here just creates the other historgram, a lot of the graphs were just autocompleted honestly
 axes[1].set_title("Fraudulent Transactions Over Time", fontsize=14, fontweight="bold")
 axes[1].set_ylabel("Number of Transactions")
-axes[1].set_xlabel("Time (Hours)")
+axes[1].set_xlabel("Time (Hours)") 
 
 fig.suptitle("Transaction Volume Distribution Over ~48 Hours", fontsize=16, fontweight="bold", y=1.02)
 fig.tight_layout()
 save_fig(fig, "02_time_distribution.png")
 
-# ── Plot: Fraud rate per hour ──
+'''
+I thought it may be useful to place the fraud rate and transaction rate on the same graph
+Transaction Volume vs Fraud Rate by Hour:
+- Create hourly bins and calculate total transactions and fraud rate for each hour
+- Plot total transactions as bars and fraud rate as a line on the same graph to see if there are any correlations between transaction volume and fraud rate at different times of the day
+
+'''
 df["HourBin"] = df["Hour"].astype(int)
 hourly_stats = df.groupby("HourBin").agg(
     total=("Class", "count"),
@@ -186,9 +192,10 @@ fig.tight_layout()
 save_fig(fig, "03_fraud_rate_by_hour.png")
 
 
-# ══════════════════════════════════════════════
-# 4. AMOUNT FEATURE ANALYSIS
-# ══════════════════════════════════════════════
+'''
+Amount Distribution Analysis:
+
+'''
 print("\n" + "=" * 60)
 print("4. TRANSACTION AMOUNT ANALYSIS")
 print("=" * 60)
@@ -207,7 +214,7 @@ print(f"  {'25th Percentile':<20} {legit.quantile(0.25):>14.2f} {fraud.quantile(
 print(f"  {'75th Percentile':<20} {legit.quantile(0.75):>14.2f} {fraud.quantile(0.75):>14.2f}")
 
 # ── Plot: Amount distribution comparison ──
-fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+fig, axes = plt.subplots(1, 2, figsize=(18, 5))
 
 # Histogram – full range
 axes[0].hist(legit, bins=80, alpha=0.6, color="#2ecc71", label="Legitimate", density=True)
@@ -226,13 +233,15 @@ axes[1].set_ylabel("Density")
 axes[1].legend()
 
 # Box plot comparison
+'''
+This is completely UNREADABLE BRO, I tried to make it work but it just looks like a mess, maybe I can do it with seaborn
 box_data = [legit.values, fraud.values]
 bp = axes[2].boxplot(box_data, tick_labels=["Legitimate", "Fraudulent"], patch_artist=True)
 bp["boxes"][0].set_facecolor("#2ecc71")
 bp["boxes"][1].set_facecolor("#e74c3c")
 axes[2].set_title("Amount Box Plot by Class", fontsize=13, fontweight="bold")
 axes[2].set_ylabel("Amount")
-
+'''
 fig.suptitle("Transaction Amount: Legitimate vs Fraudulent", fontsize=16, fontweight="bold", y=1.02)
 fig.tight_layout()
 save_fig(fig, "04_amount_distribution.png")
