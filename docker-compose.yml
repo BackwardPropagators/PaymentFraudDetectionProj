@@ -1,0 +1,35 @@
+
+services:
+
+  Dataset1:
+    build:
+      context: ./Dataset1
+    image: dataset1_image
+    container_name: dataset1
+    volumes:
+      - ./data:/app/data
+      - ./Dataset1:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+  
+  Dataset2:
+    build:
+      context: ./Dataset2
+    image: dataset2_image
+    container_name: dataset2
+    volumes:
+      - ./data:/app/data
+      - ./Dataset2:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+  
+  Dataset3:
+    build:
+      context: ./Dataset3
+    image: dataset3_image
+    container_name: dataset3
+    volumes:
+      - ./data:/app/data
+      - ./Dataset3:/app
+    environment:
+      - PYTHONUNBUFFERED=1
