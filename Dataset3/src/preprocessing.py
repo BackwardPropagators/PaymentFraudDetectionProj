@@ -31,9 +31,6 @@ def load_and_clean():
     Load Dataset 3, convert types, drop duplicates.
     Returns the cleaned DataFrame.
     """
-    # ══════════════════════════════════════════════
-    # 1. DATA LOADING & INITIAL EXPLORATION
-    # ══════════════════════════════════════════════
     print("=" * 60)
     print("1. LOADING DATA")
     print("=" * 60)
@@ -143,7 +140,7 @@ def analyse_time_features(df):
     fig.tight_layout()
     save_fig(fig, "02_time_distribution.png")
 
-    # ── Transaction Volume vs Fraud Rate by Hour ──
+
     df["HourBin"] = df["Hour"].astype(int)
     hourly_stats = df.groupby("HourBin").agg(
         total=("Class", "count"),
@@ -213,8 +210,8 @@ def analyse_amounts(df):
     fig.tight_layout()
     save_fig(fig, "04_amount_distribution.png")
 
-    # ── Log distribution ──
-    # fixed with log1p, which adds a small constant to avoid log(0)
+
+
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.hist(np.log1p(legit), bins=80, alpha=0.6, color="#2ecc71", label="Legitimate", density=True)
     ax.hist(np.log1p(fraud), bins=80, alpha=0.6, color="#e74c3c", label="Fraudulent", density=True)
@@ -265,7 +262,8 @@ def analyse_pca_features(df):
     fig.tight_layout()
     save_fig(fig, "06_top_pca_features.png")
 
-    # ── Box plots for all V features ──
+
+
     fig, axes = plt.subplots(4, 7, figsize=(28, 16))
     axes = axes.flatten()
 
@@ -386,7 +384,7 @@ def print_split_summary(splits, X, y):
             f"{len(test_idx):>11,} {test_fraud:>12,} {train_hours_range:>13} {test_hours_range:>12}"
         )
 
-    # ── Plot: Time-based split visualisation ──
+
     fig, ax = plt.subplots(figsize=(14, 4))
 
     for i, (train_idx, test_idx) in enumerate(splits):
