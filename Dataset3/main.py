@@ -232,8 +232,10 @@ axes[1].set_xlabel("Amount")
 axes[1].set_ylabel("Density")
 axes[1].legend()
 
-# Box plot comparison
+
 '''
+Box Plot
+some ideas: Log scale, violin plot, capping outliners maybe?
 This is completely UNREADABLE BRO, I tried to make it work but it just looks like a mess, maybe I can do it with seaborn
 box_data = [legit.values, fraud.values]
 bp = axes[2].boxplot(box_data, tick_labels=["Legitimate", "Fraudulent"], patch_artist=True)
@@ -246,9 +248,13 @@ fig.suptitle("Transaction Amount: Legitimate vs Fraudulent", fontsize=16, fontwe
 fig.tight_layout()
 save_fig(fig, "04_amount_distribution.png")
 
-# ── Plot: Log-transformed amount ──
+'''
+Log distribution:
+This is to essentially account for the gigantic skew in the amount distribution
+In making it, the histogeam was NOT LOADING, and crashing on occasion, I didnt account for log(0)......
+fixed with log1p, which adds a small constant to avoid log(0) and it actually worksssss
+'''
 fig, ax = plt.subplots(figsize=(10, 5))
-# Add small constant to avoid log(0)
 ax.hist(np.log1p(legit), bins=80, alpha=0.6, color="#2ecc71", label="Legitimate", density=True)
 ax.hist(np.log1p(fraud), bins=80, alpha=0.6, color="#e74c3c", label="Fraudulent", density=True)
 ax.set_title("Log-Transformed Amount Distribution", fontsize=14, fontweight="bold")
@@ -259,32 +265,37 @@ fig.tight_layout()
 save_fig(fig, "05_amount_log_distribution.png")
 
 
-# ══════════════════════════════════════════════
-# 5. PCA FEATURE ANALYSIS (V1–V28)
-# ══════════════════════════════════════════════
+'''
+Feature Analsysis:
+- Since the V1-V28 features are PCA components, we can analyze which ones differ most between fraudulent and legitimate transactions by comparing their distributions.
+- We can compute the mean absolute difference between fraud and legit for each V feature to identify which PCA components are most discriminative, and then plot their distributions side by side.
+- Additionally, we can create box plots for all V features to visually compare their distributions by class and identify any that show significant differences.
+
+This SHOULD identify the most important PCA features for distinguishing fraud from legitimate transactions, which can be useful for feature selection and understanding the underlying patterns in the data.
+After running this, I found that V14, V17, V12, V10, V11, and V3 had the largest mean differences between fraud and legit transactions
+
+'''
 print("\n" + "=" * 60)
 print("5. PCA FEATURE ANALYSIS (V1–V28)")
 print("=" * 60)
 
-v_cols = [f"V{i}" for i in range(1, 29)]
+v_cols = [f"V{i}" for i in range(1, 29)] 
 
-# Compute mean absolute difference between fraud and legitimate for each V feature
-# to identify which PCA components differ most between classes
+
 mean_legit = df[df["Class"] == 0][v_cols].mean()
 mean_fraud = df[df["Class"] == 1][v_cols].mean()
 mean_diff = (mean_fraud - mean_legit).abs().sort_values(ascending=False)
 
 print("  Top PCA features by |mean(fraud) – mean(legit)|:")
-for feat, diff in mean_diff.head(10).items():
-    print(f"    {feat:<5}  Δ = {diff:.4f}  (legit: {mean_legit[feat]:>8.4f}, fraud: {mean_fraud[feat]:>8.4f})")
+for feat, diff in mean_diff.head(10).items(): # This loop iterates over the top 10 PCA features with the largest absolute mean difference between fraudulent and legitimate transactions. It prints out the feature name, the mean difference, and the actual mean values for both classes for better context.
+    print(f"    {feat:<5}  Δ = {diff:.4f}  (legit: {mean_legit[feat]:>8.4f}, fraud: {mean_fraud[feat]:>8.4f})") # This prints out the top PCA features based on the absolute difference in means between fraudulent and legitimate transactions. It shows the feature name, the mean difference, and the actual mean values for both classes for better context.
 
-# ── Plot: Top discriminating PCA features ──
 top_features = mean_diff.head(6).index.tolist()
 
 fig, axes = plt.subplots(2, 3, figsize=(18, 10))
 axes = axes.flatten()
 
-for i, feat in enumerate(top_features):
+for i, feat in enumerate(top_features): # This loop iterates over the top 6 PCA features identified as most discriminative. For each feature, it creates a histogram comparing the distribution of that feature for legitimate and fraudulent transactions, 6 is used becasue it wont be overwhwlming
     axes[i].hist(df[df["Class"] == 0][feat], bins=80, alpha=0.5, color="#2ecc71", label="Legitimate", density=True)
     axes[i].hist(df[df["Class"] == 1][feat], bins=80, alpha=0.5, color="#e74c3c", label="Fraudulent", density=True)
     axes[i].set_title(f"{feat} Distribution", fontsize=13, fontweight="bold")
@@ -296,11 +307,11 @@ fig.suptitle("Top 6 Discriminating PCA Features: Fraud vs Legitimate", fontsize=
 fig.tight_layout()
 save_fig(fig, "06_top_pca_features.png")
 
-# ── Plot: All V-feature box plots by class ──
+
 fig, axes = plt.subplots(4, 7, figsize=(28, 16))
 axes = axes.flatten()
 
-for i, col in enumerate(v_cols):
+for i, col in enumerate(v_cols): # This loop iterates over all 28 columns and creates box plots for each feature comparing the distributions between legitimate and fraudulent transactions
     data_legit = df[df["Class"] == 0][col]
     data_fraud = df[df["Class"] == 1][col]
     bp = axes[i].boxplot(
@@ -308,7 +319,7 @@ for i, col in enumerate(v_cols):
         tick_labels=["0", "1"],
         patch_artist=True,
         widths=0.6,
-    )
+    ) # This creates a box plot on the i-th subplot comparing the distribution of the current feature (col) for legitimate (0) and fraudulent (1) transactions
     bp["boxes"][0].set_facecolor("#2ecc71")
     bp["boxes"][1].set_facecolor("#e74c3c")
     axes[i].set_title(col, fontsize=11, fontweight="bold")
@@ -318,17 +329,22 @@ fig.suptitle("V1–V28 Feature Distributions by Class", fontsize=18, fontweight=
 fig.tight_layout()
 save_fig(fig, "07_all_v_features_boxplots.png")
 
-RANDOM_STATE = 42
-# ══════════════════════════════════════════════
-# 6. CORRELATION ANALYSIS
-# ══════════════════════════════════════════════
+RANDOM_STATE = 42 # Setting a random state for reproducibility, USED FOR SMOTE TOOOO
+'''
+Pearson correlation coefficient: This measures the linear correlation between each feature and the target variable (Class). A value close to +1 indicates a strong positive correlation, while a value close to -1 indicates a strong negative correlation 
+Corellation Analysis:
+- Compute the Pearson correlation coefficient between each feature (V1–V28 and Amount) and the target variable (Class) to identify which features are most strongly associated with fraudulent transactions.
+- Create a horizontal bar chart to visualize the correlation of each feature with the target variable, highlighting the most positively and negatively correlated features.
+- Additionally, create a correlation heatmap for all features and the target variable to visualize the relationships 
+
+'''
 print("\n" + "=" * 60)
 print("6. CORRELATION ANALYSIS")
 print("=" * 60)
 
-# Correlation of each feature with the target
+
 feature_cols = v_cols + ["Amount"]
-corr_with_class = df[feature_cols + ["Class"]].corr()["Class"].drop("Class").sort_values()
+corr_with_class = df[feature_cols + ["Class"]].corr()["Class"].drop("Class").sort_values() # This calculates the Pearson correlation coefficient between each feature and the target variable (Class). It drops the correlation of Class with itself and sorts the features by their correlation values in ascending order.
 
 print("  Features most negatively correlated with Class (fraud):")
 for feat, corr in corr_with_class.head(5).items():
@@ -338,7 +354,7 @@ print("\n  Features most positively correlated with Class (fraud):")
 for feat, corr in corr_with_class.tail(5).items():
     print(f"    {feat:<8}  r = {corr:+.4f}")
 
-# ── Plot: Feature correlation with target ──
+
 fig, ax = plt.subplots(figsize=(12, 6))
 colors = ["#e74c3c" if v < 0 else "#2ecc71" for v in corr_with_class.values]
 ax.barh(corr_with_class.index, corr_with_class.values, color=colors, edgecolor="black", linewidth=0.5)
@@ -348,9 +364,8 @@ ax.axvline(x=0, color="black", linewidth=0.8)
 fig.tight_layout()
 save_fig(fig, "08_feature_correlation_with_class.png")
 
-# ── Plot: Correlation heatmap (sampled for readability) ──
-# Use V-features + Amount + Class
-corr_matrix = df[feature_cols + ["Class"]].corr()
+
+corr_matrix = df[feature_cols + ["Class"]].corr() # This computes the correlation matrix for all features and the target variable (Class). It includes both the V1–V28 features and the Amount feature, allowing us to see how they correlate with each other and with the target variable.
 
 fig, ax = plt.subplots(figsize=(16, 14))
 mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
@@ -364,43 +379,47 @@ sns.heatmap(
     linewidths=0.5,
     cbar_kws={"shrink": 0.8},
     ax=ax,
-)
+) # This creates a heatmap of the correlation matrix, masking the upper triangle for readability and using a diverging color map centered at 0.
 ax.set_title("Feature Correlation Heatmap", fontsize=16, fontweight="bold")
 fig.tight_layout()
 save_fig(fig, "09_correlation_heatmap.png")
 
 
-# ══════════════════════════════════════════════
-# 7. PREPROCESSING PIPELINE
-# ══════════════════════════════════════════════
+'''
+Preprocessing Pipeline:
+- Drop any helper columns created during analysis (e.g., Hour, HourBin)
+- Separate features (X) and target variable (y)
+- Keep Time for time-based splitting but exclude it from the feature set used for training models, since it is only relevant for temporal validation and not a predictive feature.
+
+'''
 print("\n" + "=" * 60)
 print("7. PREPROCESSING PIPELINE")
 print("=" * 60)
 
-# 7a. Drop helper columns created during analysis
-df.drop(columns=["Hour", "HourBin"], inplace=True, errors="ignore")
 
-# 7b. Separate features and target
-#     Time is kept for time-based splitting but removed from the feature set before training
-X = df.drop(columns=["Class"])
+df.drop(columns=["Hour", "HourBin"], inplace=True, errors="ignore")# Drop helper columns created during analysis
+
+X = df.drop(columns=["Class"]) # Separate features and target Time is kept for time-based splitting but removed from the feature set before training
 y = df["Class"]
 
 print(f"  Feature matrix X: {X.shape}")
 print(f"  Target vector y:  {y.shape}  (fraud={y.sum():,}, legit={len(y) - y.sum():,})")
 
 
-# ══════════════════════════════════════════════
-# 8. TIME-BASED TRAIN / TEST SPLITTING
-# ══════════════════════════════════════════════
+'''
+Test Splitting Strategy:
+- Implement an expanding-window time-based split to create multiple train/test splits that respect the temporal order
+The dataset covers ~48 hours (0–172,792 seconds).
+We use an expanding-window approach:
+   - Minimum training window: first 16 hours
+   - Test window: 8 hours each
+   - Train always precedes test (no temporal leakage)
+'''
 print("\n" + "=" * 60)
 print("8. TIME-BASED TRAIN / TEST SPLITTING")
 print("=" * 60)
 
-# The dataset covers ~48 hours (0–172,792 seconds).
-# We use an expanding-window approach:
-#   - Minimum training window: first 16 hours
-#   - Test window: 8 hours each
-#   - Train always precedes test (no temporal leakage)
+
 
 hours = X["Time"] / 3600
 total_hours = hours.max()
@@ -410,9 +429,10 @@ min_train_hours = 16  # minimum training period
 splits = []
 test_start = min_train_hours
 
-while test_start + test_window <= total_hours:
+while test_start < total_hours: # Changed from test_start + test_window <= total_hours so the final partial window isn't dropped (was losing ~8h of data)
+    test_end = min(test_start + test_window, total_hours + 1) # cap at end of dataset; +1 so the max-hour row is included with <
     train_mask = hours < test_start
-    test_mask = (hours >= test_start) & (hours < test_start + test_window)
+    test_mask = (hours >= test_start) & (hours < test_end)
 
     train_idx = X[train_mask].index.tolist()
     test_idx = X[test_mask].index.tolist()
@@ -429,7 +449,7 @@ print(f"  Number of time-based splits: {len(splits)}\n")
 print(f"  {'Split':<8} {'Train Size':>12} {'Train Fraud':>13} {'Test Size':>11} {'Test Fraud':>12} {'Train Hours':>13} {'Test Hours':>12}")
 print(f"  {'-' * 81}")
 
-for i, (train_idx, test_idx) in enumerate(splits):
+for i, (train_idx, test_idx) in enumerate(splits): # This loop iterates over each of the time-based splits created. For each split, it calculates and prints the size of the training and test sets, the number of fraudulent transactions in each, and the time range covered by the training and test sets. This provides a clear summary of how the dataset is partitioned for temporal validation.
     train_fraud = y.loc[train_idx].sum()
     test_fraud = y.loc[test_idx].sum()
     train_hours_range = f"0–{hours.loc[train_idx].max():.0f}h"
@@ -460,9 +480,20 @@ fig.tight_layout()
 save_fig(fig, "10_time_based_splits.png")
 
 
-# ══════════════════════════════════════════════
-# 9. FEATURE SCALING & SMOTE (DEMO ON SPLIT 1)
-# ══════════════════════════════════════════════
+'''
+I dropped the time becasue the split already exists, so it has no predictive value
+Feature Scaling & SMOTE Demonstration:
+I was curious to see the effect of scaling and SMOTE on the class distribution, so I implemented it on the first split as a demonstration. This is just to show how the training data can be preprocessed before feeding it into a model, and to highlight the importance of applying these steps only to the training set to avoid data leakage.
+
+What SMOTE does: Synthetic Minority Over-sampling Technique. For each fraud sample, it picks a random nearest neighbour (also fraud), draws a random point on the line segment between them, and adds that synthetic point. It repeats until the minority class matches the majority class count.
+
+Why not just duplicate fraud rows? Simple duplication makes the model memorise those exact rows. SMOTE creates new points in feature space, giving the model more variety and better generalisation.
+
+Why train only? If you SMOTE the test set, you'd be evaluating the model on synthetic data that doesn't exist in reality. Test performance must reflect what the model would face on real, unseen transactions.
+
+Why after scaling? SMOTE relies on Euclidean distance to find nearest neighbours. If features aren't scaled, the distance calculation is dominated by whichever feature has the largest magnitude — the synthetic points would cluster along the Amount axis and ignore the V-features.
+
+'''
 print("\n" + "=" * 60)
 print("9. FEATURE SCALING & SMOTE DEMONSTRATION (Split 1)")
 print("=" * 60)
@@ -523,9 +554,8 @@ fig.tight_layout()
 save_fig(fig, "11_smote_effect.png")
 
 
-# ══════════════════════════════════════════════
+
 # 10. SUMMARY
-# ══════════════════════════════════════════════
 print("\n" + "=" * 60)
 print("10. PREPROCESSING SUMMARY")
 print("=" * 60)
