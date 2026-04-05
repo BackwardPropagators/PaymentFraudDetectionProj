@@ -40,10 +40,10 @@ def load_and_clean():
     # Class column arrives as quoted strings ("0" / "1") – convert to int
     df["Class"] = df["Class"].astype(int)
 
-    print(f"Shape: {df.shape[0]:,} rows  ×  {df.shape[1]} columns")
-    print(f"\nColumn types:\n{df.dtypes.value_counts()}")
-    print(f"\nFirst 5 rows:\n{df.head()}")
-    print(f"\nBasic statistics:\n{df.describe()}")
+    print(f"Shape: {df.shape[0]:,} rows  ×  {df.shape[1]} columns") # This is just a nice way to print the shape with commas for thousands separators
+    print(f"\nColumn types:\n{df.dtypes.value_counts()}") # This shows how many columns are of each data type, which is useful for understanding the structure of the dataset and identifying any potential issues with data types 
+    print(f"\nFirst 5 rows:\n{df.head()}") # This gives a quick look at the actual data, which can help identify any obvious issues (like misaligned columns, unexpected values on other stuff)
+    print(f"\nBasic statistics:\n{df.describe()}")# This provides a summary of the central tendency, dispersion, and shape of the dataset's distribution, which is useful for understanding the overall characteristics of the data.
 
     # Check for missing values
     missing = df.isnull().sum()
@@ -69,30 +69,35 @@ def analyse_class_distribution(df):
     - Show the extreme imbalance (fraudulent transactions are a tiny fraction of the dataset)
     - Bar chart of class counts with percentages annotated
     - Pie chart to visually reinforce the imbalance
+    - Gotta print out stuff to show progress as it goes along -  add to top
+    What I need to do:
+    - Create dataframe with class counts and percentages
+    - Plot bar chart and pie chart side by side using matplotlib
+    - Label all the stuff and save the figure to results
     """
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 60) # Low key forgot I could do this, relearnt fromm ISS
     print("2. CLASS DISTRIBUTION")
     print("=" * 60)
 
     class_counts = df["Class"].value_counts().sort_index()
-    class_pct = df["Class"].value_counts(normalize=True).sort_index() * 100
+    class_pct = df["Class"].value_counts(normalize=True).sort_index() * 100 # Normalize should proportion it out to percentages
 
-    print(f"  Legitimate (0): {class_counts[0]:>8,}  ({class_pct[0]:.4f}%)")
+    print(f"  Legitimate (0): {class_counts[0]:>8,}  ({class_pct[0]:.4f}%)") 
     print(f"  Fraudulent (1): {class_counts[1]:>8,}  ({class_pct[1]:.4f}%)")
     print(f"  Imbalance ratio: 1 : {class_counts[0] / class_counts[1]:.0f}")
 
-    colors = ["#2ecc71", "#e74c3c"]
-    labels = ["Legitimate (0)", "Fraudulent (1)"]
+    colors = ["#2ecc71", "#e74c3c"]  # Thank god for autocomplete
+    labels = ["Legitimate (0)", "Fraudulent (1)"] # Bars and slices
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5)) # This creates both the figures and the axes for the subplots. The 1,2 means 1 row and 2 columns of subplots, and figsize sets the overall size of the figure.
 
-    axes[0].bar(labels, class_counts.values, color=colors, edgecolor="black")
-    axes[0].set_title("Transaction Class Counts", fontsize=14, fontweight="bold")
+    axes[0].bar(labels, class_counts.values, color=colors, edgecolor="black")# This creates a bar chart on the first subplot (axes[0]) with the specified labels, counts, colors, and black edges for better visibility.
+    axes[0].set_title("Transaction Class Counts", fontsize=14, fontweight="bold") # Bar chart title
     axes[0].set_ylabel("Count")
-    for i, (cnt, pct) in enumerate(zip(class_counts.values, class_pct.values)):
-        axes[0].text(i, cnt + cnt * 0.01, f"{cnt:,}\n({pct:.3f}%)", ha="center", fontsize=10)
+    for i, (cnt, pct) in enumerate(zip(class_counts.values, class_pct.values)): # This loop iterates over the class counts and percentages. Uses enumerate to get the index (i) for positioning the text above each bar. Formats the count with commas and the percentage with three decimal places, putting it above the bar for clarity.
+        axes[0].text(i, cnt + cnt * 0.01, f"{cnt:,}\n({pct:.3f}%)", ha="center", fontsize=10)# Adds the annotations to 3 decimal places
 
-    axes[1].pie(class_counts.values, labels=labels, colors=colors, autopct="%1.3f%%", startangle=90, explode=(0, 0.1))
+    axes[1].pie(class_counts.values, labels=labels, colors=colors, autopct="%1.3f%%", startangle=90, explode=(0, 0.1))# Created the pie chart but the explode was added to the fraud slice becasue I really couldnt see it the first time
     axes[1].set_title("Class Proportion", fontsize=14, fontweight="bold")
 
     fig.suptitle("Severe Class Imbalance in Dataset 3", fontsize=16, fontweight="bold", y=1.02)
@@ -100,6 +105,7 @@ def analyse_class_distribution(df):
     save_fig(fig, "01_class_distribution.png")
 
     return colors, labels
+
 
 
 def analyse_time_features(df):
@@ -114,27 +120,33 @@ def analyse_time_features(df):
     - Convert Time from seconds to hours for better interpretability
     - Plot transaction volume over time (histogram of transactions by hour)
     - Plot fraud rate by hour to see if there are temporal patterns in fraudulent activity
+    I thought it may be useful to place the fraud rate and transaction rate on the same graph cuz it looks nice
+    Transaction Volume vs Fraud Rate by Hour:
+    - Create hourly bins and calculate total transactions and fraud rate for each hour
+    - Plot total transactions as bars and fraud rate as a line on the same graph to see if there are any correlations between transaction volume and fraud rate at different times of the day
+
     """
     print("\n" + "=" * 60)
     print("3. TIME FEATURE ANALYSIS")
     print("=" * 60)
 
-    df["Hour"] = df["Time"] / 3600
+    df["Hour"] = df["Time"] / 3600 # Convert seconds to hours
     total_hours = df["Hour"].max()
-    print(f"  Time range: 0 – {df['Time'].max():,.0f} seconds  ({total_hours:.1f} hours ≈ {total_hours / 24:.1f} days)")
+    print(f"  Time range: 0 – {df['Time'].max():,.0f} seconds  ({total_hours:.1f} hours ≈ {total_hours / 24:.1f} days)") # This gives a nice summary of the time range covered by the dataset, showing both the raw seconds and the more more easily readable hours and days.
 
     # ── Transaction volume over time ──
-    fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
+    fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True)# This creates a figure with two subplots arranged vertically (2 rows, 1 column). sharex means that both subplots will share the same x-axis
 
-    axes[0].hist(df["Hour"], bins=48, color="#3498db", edgecolor="black", alpha=0.7)
-    axes[0].set_title("All Transactions Over Time", fontsize=14, fontweight="bold")
-    axes[0].set_ylabel("Number of Transactions")
+    axes[0].hist(df["Hour"], bins=48, color="#3498db", edgecolor="black", alpha=0.7) # Autocompleted COMPLETELY
+    axes[0].set_title("All Transactions Over Time", fontsize=14, fontweight="bold") # --
+    axes[0].set_ylabel("Number of Transactions") # --
 
-    fraud_hours = df[df["Class"] == 1]["Hour"]
-    axes[1].hist(fraud_hours, bins=48, color="#e74c3c", edgecolor="black", alpha=0.7)
+    fraud_hours = df[df["Class"] == 1]["Hour"] # This creates a new dataframe called fraud_hours that contains only the Hour values for transactions where the Class is 1 (fraudulent)
+    axes[1].hist(fraud_hours, bins=48, color="#e74c3c", edgecolor="black", alpha=0.7) # From here just creates the other historgram, a lot of the graphs were just autocompleted honestly
     axes[1].set_title("Fraudulent Transactions Over Time", fontsize=14, fontweight="bold")
     axes[1].set_ylabel("Number of Transactions")
     axes[1].set_xlabel("Time (Hours)")
+
 
     fig.suptitle("Transaction Volume Distribution Over ~48 Hours", fontsize=16, fontweight="bold", y=1.02)
     fig.tight_layout()
@@ -172,6 +184,19 @@ def analyse_time_features(df):
 def analyse_amounts(df):
     """
     Amount Distribution Analysis.
+    Box Plot
+    some ideas: Log scale, violin plot, capping outliners maybe?
+    This is completely UNREADABLE BRO, I tried to make it work but it just looks like a mess, maybe I can do it with seaborn
+    box_data = [legit.values, fraud.values]
+    bp = axes[2].boxplot(box_data, tick_labels=["Legitimate", "Fraudulent"], patch_artist=True)
+    bp["boxes"][0].set_facecolor("#2ecc71")
+    bp["boxes"][1].set_facecolor("#e74c3c")
+    axes[2].set_title("Amount Box Plot by Class", fontsize=13, fontweight="bold")
+    axes[2].set_ylabel("Amount")
+    Log distribution:
+    This is to essentially account for the gigantic skew in the amount distribution
+    In making it, the histogeam was NOT LOADING, and crashing on occasion, I didnt account for log(0)......
+    fixed with log1p, which adds a small constant to avoid log(0) and it actually worksssss 
     """
     print("\n" + "=" * 60)
     print("4. TRANSACTION AMOUNT ANALYSIS")
@@ -230,6 +255,10 @@ def analyse_pca_features(df):
       between fraudulent and legitimate transactions by comparing their distributions.
     - After running this, I found that V14, V17, V12, V10, V11, and V3 had the largest mean
       differences between fraud and legit transactions.
+    This SHOULD identify the most important PCA features for distinguishing fraud from legitimate transactions, which can be useful for feature selection and understanding the underlying patterns in the data.
+    After running this, I found that V14, V17, V12, V10, V11, and V3 had the largest mean differences between fraud and legit transactions
+
+    
     """
     print("\n" + "=" * 60)
     print("5. PCA FEATURE ANALYSIS (V1–V28)")
@@ -242,18 +271,18 @@ def analyse_pca_features(df):
     mean_diff = (mean_fraud - mean_legit).abs().sort_values(ascending=False)
 
     print("  Top PCA features by |mean(fraud) – mean(legit)|:")
-    for feat, diff in mean_diff.head(10).items():
-        print(f"    {feat:<5}  Δ = {diff:.4f}  (legit: {mean_legit[feat]:>8.4f}, fraud: {mean_fraud[feat]:>8.4f})")
+    for feat, diff in mean_diff.head(10).items():# This loop iterates over the top 10 PCA features with the largest absolute mean difference between fraudulent and legitimate transactions. It prints out the feature name, the mean difference, and the actual mean values for both classes for better context.
+        print(f"    {feat:<5}  delta = {diff:.4f}  (legit: {mean_legit[feat]:>8.4f}, fraud: {mean_fraud[feat]:>8.4f})") # This prints out the top PCA features based on the absolute difference in means between fraudulent and legitimate transactions. It shows the feature name, the mean difference, and the actual mean values for both classes for better context.
 
     top_features = mean_diff.head(6).index.tolist()
 
     fig, axes = plt.subplots(2, 3, figsize=(18, 10))
     axes = axes.flatten()
 
-    for i, feat in enumerate(top_features):
-        axes[i].hist(df[df["Class"] == 0][feat], bins=80, alpha=0.5, color="#2ecc71", label="Legitimate", density=True)
-        axes[i].hist(df[df["Class"] == 1][feat], bins=80, alpha=0.5, color="#e74c3c", label="Fraudulent", density=True)
-        axes[i].set_title(f"{feat} Distribution", fontsize=13, fontweight="bold")
+    for i, feat in enumerate(top_features): # This loop iterates over the top 6 PCA features identified as most discriminative. For each feature, it creates a histogram comparing the distribution of that feature for legitimate and fraudulent transactions, 6 is used becasue it wont be overwhwlming
+        axes[i].hist(df[df["Class"] == 0][feat], bins=80, alpha=0.5, color="#2ecc71", label="Legitimate", density=True) # Histogram for Legit trans
+        axes[i].hist(df[df["Class"] == 1][feat], bins=80, alpha=0.5, color="#e74c3c", label="Fraudulent", density=True) # Histogram for Fraud trans
+        axes[i].set_title(f"{feat} Distribution", fontsize=13, fontweight="bold") 
         axes[i].set_xlabel(feat)
         axes[i].set_ylabel("Density")
         axes[i].legend(fontsize=9)
@@ -267,7 +296,7 @@ def analyse_pca_features(df):
     fig, axes = plt.subplots(4, 7, figsize=(28, 16))
     axes = axes.flatten()
 
-    for i, col in enumerate(v_cols):
+    for i, col in enumerate(v_cols): # This loop iterates over all 28 columns and creates box plots for each feature comparing the distributions between legitimate and fraudulent transactions
         data_legit = df[df["Class"] == 0][col]
         data_fraud = df[df["Class"] == 1][col]
         bp = axes[i].boxplot(
@@ -275,7 +304,7 @@ def analyse_pca_features(df):
             tick_labels=["0", "1"],
             patch_artist=True,
             widths=0.6,
-        )
+        ) # This creates a box plot on the i-th subplot comparing the distribution of the current feature (col) for legitimate (0) and fraudulent (1) transactions
         bp["boxes"][0].set_facecolor("#2ecc71")
         bp["boxes"][1].set_facecolor("#e74c3c")
         axes[i].set_title(col, fontsize=11, fontweight="bold")
@@ -290,7 +319,14 @@ def analyse_pca_features(df):
 
 def analyse_correlations(df, v_cols):
     """
-    Pearson correlation coefficient analysis.
+    Pearson correlation coefficient: This measures the linear correlation between each feature and the target variable (Class). A value close to +1 indicates a strong positive correlation, while a value close to -1 indicates a strong negative correlation 
+    Corellation Analysis:
+    - Compute the Pearson correlation coefficient between each feature (V1–V28 and Amount) and the target variable (Class) to identify which features are most strongly associated with fraudulent transactions.
+    - Create a horizontal bar chart to visualize the correlation of each feature with the target variable, highlighting the most positively and negatively correlated features.
+    - Additionally, create a correlation heatmap for all features and the target variable to visualize the relationships 
+
+
+
     """
     print("\n" + "=" * 60)
     print("6. CORRELATION ANALYSIS")
@@ -415,6 +451,13 @@ def demonstrate_smote(splits, X, y, colors, labels):
 
     Why train only? If you SMOTE the test set, you'd be evaluating the model on synthetic
     data that doesn't exist in reality.
+    Test Splitting Strategy:
+    - Implement an expanding-window time-based split to create multiple train/test splits that respect the temporal order
+    - The dataset covers ~48 hours (0–172,792 seconds).
+    - We use an expanding-window approach:
+       - Minimum training window: first 16 hours
+       - Test window: 8 hours each
+       - Train always precedes test (no temporal leakage)
     """
     print("\n" + "=" * 60)
     print("9. FEATURE SCALING & SMOTE DEMONSTRATION (Split 1)")
