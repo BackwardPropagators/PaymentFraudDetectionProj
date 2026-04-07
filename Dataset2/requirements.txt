@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+imbalanced-learn
+pytest
+torch
+kagglehub
