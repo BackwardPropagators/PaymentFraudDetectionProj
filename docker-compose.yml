@@ -1,6 +1,4 @@
-
 services:
-
   Dataset1:
     build:
       context: ./Dataset1
@@ -11,7 +9,7 @@ services:
       - ./Dataset1:/app
     environment:
       - PYTHONUNBUFFERED=1
-  
+
   Dataset2:
     build:
       context: ./Dataset2
@@ -22,7 +20,7 @@ services:
       - ./Dataset2:/app
     environment:
       - PYTHONUNBUFFERED=1
-  
+
   Dataset3:
     build:
       context: ./Dataset3

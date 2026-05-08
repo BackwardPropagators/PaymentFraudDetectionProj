@@ -1,26 +1,12 @@
-"""
-Dataset 3 - Experiment Runner
-
-Orchestrates the full pipeline:
-  1. Preprocessing & EDA  (src/preprocessing.py)
-  2. Model training       (src/models/*)
-  3. Evaluation & plots   (src/evaluation.py)
-"""
-
+from src.models.logistic_reg import generate_visualisations, train_and_evaluate
 from src.preprocessing import run_preprocessing
-from src.models.logistic_reg import train_and_evaluate, generate_visualisations
+
+
+def main():
+    data, features, target, splits, total_hours = run_preprocessing()
+    results, last_model, feature_names = train_and_evaluate(splits, features, target)
+    generate_visualisations(splits, features, target, results, last_model, feature_names)
 
 
 if __name__ == "__main__":
-    # -- 1. Preprocessing & EDA --
-    df, X, y, splits, total_hours = run_preprocessing()
-
-    # -- 2. Logistic Regression (Algorithm 1) --
-    lr_df, last_model, feature_names = train_and_evaluate(splits, X, y)
-    generate_visualisations(splits, X, y, lr_df, last_model, feature_names)
-
-    # -- 3. Random Forest (Algorithm 2) --
-    # TODO: from src.models.random_forest import ...
-
-    # -- 4. Feed-Forward Neural Network (Algorithm 3) --
-    # TODO: from src.models.neural_network import ...
+    main()

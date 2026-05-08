@@ -5,105 +5,111 @@ param(
 
 $Services = @("Dataset1", "Dataset2", "Dataset3")
 
+function Assert-Service {
+    param([string]$Name)
 
-function Assert-Service{
-    param([string]$Svc)
-    if(-not $Svc){
-        Write-Host "Please specify a service. Available services: $($Services -join ', ')" -ForegroundColor Red
+    if (-not $Name) {
+        Write-Host "Please choose a service: $($Services -join ', ')" -ForegroundColor Red
         exit 1
     }
-    if ($Services -notcontains $Svc) {
-        Write-Host "Invalid service '$Svc'. Available services: $($Services -join ', ')" -ForegroundColor Red
+
+    if ($Services -notcontains $Name) {
+        Write-Host "Unknown service '$Name'. Choose one of: $($Services -join ', ')" -ForegroundColor Red
         exit 1
     }
 }
 
 function Invoke-Up {
-    Write-Host "Starting and building all services..." -ForegroundColor Green
+    Write-Host "Starting services..." -ForegroundColor Green
     docker-compose up --build
 }
 
 function Invoke-Down {
-    Write-Host "Stopping all services..." -ForegroundColor Yellow
+    Write-Host "Stopping services..." -ForegroundColor Yellow
     docker-compose down
 }
 
 function Invoke-Restart {
-    Write-Host "Restarting all services..." -ForegroundColor Yellow
-    docker-compose down
-    docker-compose up --build
+    Invoke-Down
+    Invoke-Up
 }
 
-function Invoke-Run{
-    param([string]$Svc)
-    Assert-Service $Svc
-    Write-Host "Running service '$Svc'..." -ForegroundColor Green
-    docker-compose run $Svc
+function Invoke-Run {
+    param([string]$Name)
+
+    Assert-Service $Name
+    Write-Host "Running $Name..." -ForegroundColor Green
+    docker-compose run $Name
 }
 
 function Invoke-Logs {
-  param([string]$Svc)
-  if (-not $Svc) {
-    Write-Host "Tailing logs for all services..." -ForegroundColor Cyan
+    param([string]$Name)
+
+    if ($Name) {
+        Assert-Service $Name
+        Write-Host "Showing logs for $Name..." -ForegroundColor Cyan
+        docker-compose logs -f $Name
+        return
+    }
+
+    Write-Host "Showing logs for all services..." -ForegroundColor Cyan
     docker-compose logs -f
-  } else {
-    Assert-Service $Svc
-    Write-Host "Tailing logs for $Svc..." -ForegroundColor Cyan
-    docker-compose logs -f $Svc
-  }
 }
 
 function Invoke-Clean {
-  Write-Host "WARNING: This will remove all containers, images, and volumes." -ForegroundColor Red
-  $confirm = Read-Host "Are you sure? (y/N)"
-  if ($confirm -match "^[Yy]$") {
-    Write-Host "Cleaning up..." -ForegroundColor Red
-    docker-compose down --rmi all --volumes --remove-orphans
-    Write-Host "Done." -ForegroundColor Green
-  } else {
+    Write-Host "This removes the project containers, images, and volumes." -ForegroundColor Red
+    $Answer = Read-Host "Continue? (y/N)"
+
+    if ($Answer -match "^[Yy]$") {
+        docker-compose down --rmi all --volumes --remove-orphans
+        Write-Host "Clean complete." -ForegroundColor Green
+        return
+    }
+
     Write-Host "Cancelled."
-  }
 }
 
 function Invoke-Status {
-  Write-Host "Container status:" -ForegroundColor Cyan
-  docker-compose ps
+    docker-compose ps
 }
- 
+
 function Invoke-Shell {
-  param([string]$Svc)
-  Assert-Service $Svc
-  Write-Host "Opening shell in $Svc..." -ForegroundColor Cyan
-  # Try bash first, fall back to sh
-  docker-compose exec $Svc /bin/bash
-  if ($LASTEXITCODE -ne 0) {
-    docker-compose exec $Svc /bin/sh
-  }
+    param([string]$Name)
+
+    Assert-Service $Name
+    Write-Host "Opening shell in $Name..." -ForegroundColor Cyan
+    docker-compose exec $Name /bin/bash
+
+    if ($LASTEXITCODE -ne 0) {
+        docker-compose exec $Name /bin/sh
+    }
+}
+
+function Show-Help {
+    Write-Host "Usage: .\dev.ps1 <command> [service]" -ForegroundColor Green
+    Write-Host "Commands:" -ForegroundColor Green
+    Write-Host "  up       Start and build all services" -ForegroundColor Green
+    Write-Host "  down     Stop all services" -ForegroundColor Green
+    Write-Host "  restart  Restart all services" -ForegroundColor Green
+    Write-Host "  run      Run one service" -ForegroundColor Green
+    Write-Host "  logs     Show logs" -ForegroundColor Green
+    Write-Host "  clean    Remove project containers, images, and volumes" -ForegroundColor Green
+    Write-Host "  status   Show container status" -ForegroundColor Green
+    Write-Host "  shell    Open a shell in a service" -ForegroundColor Green
 }
 
 switch ($Command.ToLower()) {
     "up" { Invoke-Up }
     "down" { Invoke-Down }
     "restart" { Invoke-Restart }
-    "run" { Invoke-Run -Svc $Service }
-    "logs" { Invoke-Logs -Svc $Service }
+    "run" { Invoke-Run -Name $Service }
+    "logs" { Invoke-Logs -Name $Service }
     "clean" { Invoke-Clean }
     "status" { Invoke-Status }
-    "shell" { Invoke-Shell -Svc $Service }
-    "help" {
-        Write-Host "Usage: .\dev.ps1 <command> [service]" -ForegroundColor Green
-        Write-Host "Commands:" -ForegroundColor Green
-        Write-Host "  up       - Start and build all services" -ForegroundColor Green
-        Write-Host "  down     - Stop all services" -ForegroundColor Green
-        Write-Host "  restart  - Restart all services" -ForegroundColor Green
-        Write-Host "  run      - Run a one-off command in a service (requires service name)" -ForegroundColor Green
-        Write-Host "  logs     - Tail logs for a service or all services (optional service name)" -ForegroundColor Green
-        Write-Host "  clean    - Remove all containers, images, and volumes (with confirmation)" -ForegroundColor Green
-        Write-Host "  status   - Show container status" -ForegroundColor Green
-        Write-Host "  shell    - Open a shell in a service (requires service name)" -ForegroundColor Green
-    }
+    "shell" { Invoke-Shell -Name $Service }
+    "help" { Show-Help }
     default {
-        Write-Host "Unknown command '$Command'. Use 'help' for usage information." -ForegroundColor Red
+        Write-Host "Unknown command '$Command'. Use 'help' to see the commands." -ForegroundColor Red
         exit 1
     }
 }
